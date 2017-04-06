@@ -9,6 +9,7 @@ namespace DW4RandoHacker
     public partial class Form1 : Form
     {
         byte[] romData;
+        Random r1;
 
 
         public Form1()
@@ -34,7 +35,7 @@ namespace DW4RandoHacker
         private void Form1_Load(object sender, EventArgs e)
         {
 
-            txtSeed.Text = (DateTime.Now.Ticks ^2 % 2147483647).ToString();
+            txtSeed.Text = ((DateTime.Now.Ticks ^ 2) % 2147483647).ToString();
             
             try
             {
@@ -54,7 +55,7 @@ namespace DW4RandoHacker
 
         private void btnNewSeed_Click(object sender, EventArgs e)
         {
-            txtSeed.Text = (DateTime.Now.Ticks ^ 2 % 2147483647).ToString();
+            txtSeed.Text = ((DateTime.Now.Ticks ^ 2) % 2147483647).ToString();
         }
 
         private void btnRandomize_Click(object sender, EventArgs e)
@@ -68,13 +69,8 @@ namespace DW4RandoHacker
 
         private bool hackRom()
         {
-            //Modify a Slime's stat growth to put all stats at 31 (the max)
-            romData[0xD451D] = 31;
-            romData[0xD451E] = 31;
-            romData[0xD451F] = 31;
-            romData[0xD4520] = 31;
-            romData[0xD4521] = 31;
-            romData[0xD4522] = 31;
+            r1 = new Random(int.Parse(txtSeed.Text));
+            ShuffleMonsters();
 
             //Wherever "clear water" is mentioned, write "tonic" over the word "water"
             //TODO: Find more of these; Bizhawk's text search is glitchy.  Do a text dump?
@@ -83,7 +79,6 @@ namespace DW4RandoHacker
             return true;
         }
         
-
         private bool loadRom()
         {
             try
@@ -161,6 +156,79 @@ namespace DW4RandoHacker
                 i++;
             }
         }
-        
+
+
+        private bool ShuffleMonsters()
+        {
+            int monster_data_length = 47;
+            int first_monster_byte = 0xD4368;
+            int monster_count = 312;
+            int[] tier_one_skills = { 1, 4, 7, 10, 13, 16, 19, 21, 22, 25, 27, 30, 32, 33, 34, 35, 36, 37, 39, 41, 43, 45, 46, 47, 49, 51, 52, 53, 54, 56, 57, 58, 59, 60, 61, 62, 63, 64, 68, 72, 74, 75, 76, 78, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 137, 138, 139, 141, 143, 144, 145, 146, 147, 148, 149, 150, 151, 153, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169 };
+
+            for (int i = 0; i < monster_count; i++)
+            {
+                //Let's randomize the monster's growth stats, but have them add up to the same value.
+                int total_stats = 0;
+                for (int j = 0; j < 6; j++)
+                {
+                    total_stats += (int)romData[first_monster_byte + i * monster_data_length + 14 + j];
+                    romData[first_monster_byte + i * monster_data_length + 14 + j] = 0;
+                }
+                
+                //Start by assigning 30 points: 20 to one stat and 10 to another (Or the same?)
+                int slot1 = r1.Next() % 6; //Named slot1 because C# is throwing a fit if I re-use the same var name in the loop below...
+                romData[first_monster_byte + i * monster_data_length + 14 + slot1] = (byte)((int)romData[first_monster_byte + i * monster_data_length + 14 + slot1] + 20);
+                slot1 = r1.Next() % 6;
+                romData[first_monster_byte + i * monster_data_length + 14 + slot1] = (byte)((int)romData[first_monster_byte + i * monster_data_length + 14 + slot1] + 10);
+                total_stats -= 30;
+
+                while (total_stats > 0)
+                {
+                    int slot = r1.Next() % 6;
+                    //Do not let the stat go over 31
+                    if ((int)romData[first_monster_byte + i * monster_data_length + 14 + slot] < 31)
+                    {
+                        romData[first_monster_byte + i * monster_data_length + 14 + slot] = (byte)((int)romData[first_monster_byte + i * monster_data_length + 14 + slot] + 1);
+                        total_stats--;
+                    }
+                }
+
+                //Repeat for resistances.  There are 27 of these...
+                int total_resistances = 0;
+                for (int j = 0; j < 27; j++)
+                {
+                    total_resistances += (int)romData[first_monster_byte + i * monster_data_length + 20 + j];
+                    romData[first_monster_byte + i * monster_data_length + 20 + j] = 0;
+                }
+                while (total_resistances > 0)
+                {
+                    int slot = r1.Next() % 27;
+                    //Do not let the stat go over 3
+                    if ((int)romData[first_monster_byte + i * monster_data_length + 20 + slot] <= 3)
+                    {
+                        romData[first_monster_byte + i * monster_data_length + 20 + slot] = (byte)((int)romData[first_monster_byte + i * monster_data_length + 20 + slot] + 1);
+                        total_resistances--;
+                    }
+                }
+
+                //Randomize skills!  Pick three of these.
+                int skill1 = r1.Next() % tier_one_skills.Length;
+                int skill2 = r1.Next() % tier_one_skills.Length;
+                while (skill2 == skill1)
+                {
+                    skill2 = r1.Next() % tier_one_skills.Length;
+                }
+                int skill3 = r1.Next() % tier_one_skills.Length;
+                while (skill3 == skill1 || skill3 == skill2)
+                {
+                    skill3 = r1.Next() % tier_one_skills.Length;
+                }
+                romData[first_monster_byte + i * monster_data_length + 10] = (byte)tier_one_skills[skill1];
+                romData[first_monster_byte + i * monster_data_length + 11] = (byte)tier_one_skills[skill2];
+                romData[first_monster_byte + i * monster_data_length + 12] = (byte)tier_one_skills[skill3];
+            }
+
+            return true;
+        }
     }
 }
