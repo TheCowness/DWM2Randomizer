@@ -42,6 +42,9 @@
             this.tabPage3 = new System.Windows.Forms.TabPage();
             this.tabPage2 = new System.Windows.Forms.TabPage();
             this.tabControl1 = new System.Windows.Forms.TabControl();
+            this.label2 = new System.Windows.Forms.Label();
+            this.label4 = new System.Windows.Forms.Label();
+            this.tabPage2.SuspendLayout();
             this.tabControl1.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -58,11 +61,11 @@
             // label1
             // 
             this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(12, 9);
+            this.label1.Location = new System.Drawing.Point(16, 12);
             this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(92, 13);
+            this.label1.Size = new System.Drawing.Size(101, 13);
             this.label1.TabIndex = 27;
-            this.label1.Text = "DW4 ROM Image";
+            this.label1.Text = "DWM2 ROM Image";
             // 
             // txtFileName
             // 
@@ -153,6 +156,7 @@
             // 
             // tabPage2
             // 
+            this.tabPage2.Controls.Add(this.label4);
             this.tabPage2.Location = new System.Drawing.Point(4, 22);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(3);
@@ -173,11 +177,31 @@
             this.tabControl1.Size = new System.Drawing.Size(508, 327);
             this.tabControl1.TabIndex = 8;
             // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(16, 33);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(490, 13);
+            this.label2.TabIndex = 43;
+            this.label2.Text = "Cobi and Tara should both work, but may give different results. (Probably??? I\'ve" +
+    " never tried Cobi????)";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(6, 3);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(343, 13);
+            this.label4.TabIndex = 0;
+            this.label4.Text = "Please ignore this form control that I have not deleted or repurposed yet";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(549, 546);
+            this.Controls.Add(this.label2);
             this.Controls.Add(this.label10);
             this.Controls.Add(this.txtFlags);
             this.Controls.Add(this.tabControl1);
@@ -189,9 +213,11 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.txtFileName);
             this.Name = "Form1";
-            this.Text = "Form1";
+            this.Text = "Dragon Warrior Monsters 2 Randomizer";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.Load += new System.EventHandler(this.Form1_Load);
+            this.tabPage2.ResumeLayout(false);
+            this.tabPage2.PerformLayout();
             this.tabControl1.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
@@ -213,6 +239,8 @@
         private System.Windows.Forms.TabPage tabPage3;
         private System.Windows.Forms.TabPage tabPage2;
         private System.Windows.Forms.TabControl tabControl1;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label label4;
     }
 }
 
