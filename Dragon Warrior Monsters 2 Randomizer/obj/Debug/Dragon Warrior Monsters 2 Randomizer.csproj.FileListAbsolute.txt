@@ -1,9 +1,0 @@
-C:\Users\Edward\Source\Repos\DWM2Randomizer\Dragon Warrior Monsters 2 Randomizer\bin\Debug\Dragon Warrior Monsters 2 Randomizer.exe.config
-C:\Users\Edward\Source\Repos\DWM2Randomizer\Dragon Warrior Monsters 2 Randomizer\bin\Debug\Dragon Warrior Monsters 2 Randomizer.exe
-C:\Users\Edward\Source\Repos\DWM2Randomizer\Dragon Warrior Monsters 2 Randomizer\bin\Debug\Dragon Warrior Monsters 2 Randomizer.pdb
-C:\Users\Edward\Source\Repos\DWM2Randomizer\Dragon Warrior Monsters 2 Randomizer\obj\Debug\Dragon Warrior Monsters 2 Randomizer.csprojResolveAssemblyReference.cache
-C:\Users\Edward\Source\Repos\DWM2Randomizer\Dragon Warrior Monsters 2 Randomizer\obj\Debug\Dragon_Warrior_Monsters_2_Randomizer.Properties.Resources.resources
-C:\Users\Edward\Source\Repos\DWM2Randomizer\Dragon Warrior Monsters 2 Randomizer\obj\Debug\Dragon Warrior Monsters 2 Randomizer.csproj.GenerateResource.Cache
-C:\Users\Edward\Source\Repos\DWM2Randomizer\Dragon Warrior Monsters 2 Randomizer\obj\Debug\Dragon Warrior Monsters 2 Randomizer.exe
-C:\Users\Edward\Source\Repos\DWM2Randomizer\Dragon Warrior Monsters 2 Randomizer\obj\Debug\Dragon Warrior Monsters 2 Randomizer.pdb
-C:\Users\Edward\Source\Repos\DWM2Randomizer\Dragon Warrior Monsters 2 Randomizer\obj\Debug\DW4RandoHacker.Form1.resources
