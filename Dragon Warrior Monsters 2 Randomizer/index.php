@@ -772,7 +772,7 @@ DWM2R();
 	</div>
 	<div class="row">
 		<div class="col-sm"><label for="flags_input">Flags:</label></div>
-		<div class="col-sm"><input type="text" name="Flags" value="(Not Yet Supported)" id="flags_input" size=15 /></div>
+		<div class="col-sm"><input type="text" name="Flags" value="" id="flags_input" size=15 /></div>
 		<div class="col-sm"><label for="seed_input">Seed:</label></div>
 		<div class="col-sm"><input type="text" name="Seed" value="<?php echo $Flags['Seed'] ?>" id="seed_input" size=10 /></div>
 		<div class="col-sm"><input type="button" name="NewSeedBtn" value="New Seed" id="NewSeedBtn" /></div>
@@ -860,26 +860,65 @@ $(document).ready(function(){
 	}
 	$("#NewSeedBtn").click(function(){NewSeed();});
 	
+	//When any flag-field is changed, update the flag string
 	$("input[type=radio]").change(function(){
 		RefreshFlagString();
 	});
+	//When the flag string is changed, update all fields
+	$("#flags_input").change(function(){
+		SetFlagsFromString();
+	});
+	//Initialize the flag string
+	RefreshFlagString();
 });
 function NewSeed(){
 	$("#seed_input").val(Math.floor(Math.random()*268435455));
 }
 function RefreshFlagString(){
-	//TODO: Finish this.
-	flags = 0;
+	//This function will serialize the important form flags into a text string so that they can be shared for races.
+	//Because JS integers are basically 32-bit, we'll have to utilize an array.
+	//Let's have each array value hold a six-bit integer (0-63), which will ultimately be represented in text by a single character
+	flags = [];
 	flag_ctr = 0;
+	flag_chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
+	//Start with all radio buttons.
 	$("input[type=radio]").each(function(){
+		if(flag_ctr % 6 == 0){
+			flags.push(0);
+		}
 		if($(this).prop("checked")){
-			flags += 2**(flag_ctr);
+			flags[Math.floor(flag_ctr / 6)] += 2**(flag_ctr % 6);
 		}else{
-			flags += 0;
+			flags[Math.floor(flag_ctr / 6)] += 0;
 		}
 		flag_ctr++;
 	});
-	$("#flags_input").val(flags);
+	
+	$("#flags_input").val('');
+	for(i = 0; i < flags.length; i++){
+		$("#flags_input").val($("#flags_input").val()+flag_chars.charAt(flags[i]));
+	}
+}
+function SetFlagsFromString(){
+	//This will be the opposite of RefreshFlagString - turn on flags based on the Flags string.
+	//TODO: Need a check to make sure the flags string is long enough.  Calculate length based on number of form elements?
+	flag_string = $("#flags_input").val();
+	flags = [];
+	flag_ctr = 0;
+	flag_chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
+	//Convert from alphanumeric to the array we used above
+	for(i = 0; i < flag_string.length; i++){
+		flags.push(flag_chars.indexOf(flag_string.charAt(i)));
+	}
+	//Start with all radio buttons
+	$("input[type=radio]").each(function(){
+		if((flags[Math.floor(flag_ctr / 6)] & 2**(flag_ctr%6)) != 0){
+			$(this).prop("checked","checked");
+		}else{
+			$(this).removeProp("checked");
+		}
+		flag_ctr++;
+	});
 }
 </script>
 
