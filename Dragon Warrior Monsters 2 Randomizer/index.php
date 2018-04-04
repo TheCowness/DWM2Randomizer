@@ -595,65 +595,7 @@ function ShuffleEncounters()
 				$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2] = chr($new_stat % 256);
 				$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1] = chr($new_stat / 256);
 			}
-
-			$lv  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 9]);
-			$hp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2 + 1]);
-			$mp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2 + 1]);
-			$atk = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2 + 1]);
-			$def = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2 + 1]);
-			$agl = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2 + 1]);
-			$int = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2 + 1]);
-			//Now, what to do for skills?
-			for($j = 0; $j < 4; $j++){
-				//Loop through all three skills the monster should learn, plus a BONUS SKILL
-				if($j <> 3){
-					$skill = ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 10 + $j]);
-				}else{
-					$skill = Random() % 169 + 1;
-				}
-				
-				//This variable is the "return value" from our loop.
-				$return_skill = 0xFF; //0xFF is "no skill".
-				while(true){
-					$skill_qry = "select * from dragonwarriormonsters2_skills where id = ".$skill." and lv <= ".$lv." and hp <= ".$hp." and mp <= ".$mp." and atk <= ".$atk." and def <= ".$def." and agl <= ".$agl." and `int` <= ".$int;
-					execute($skill_qry);
-					$result = get();
-					if(count($result) !== 0){
-						$return_skill = $result["id"];
-						$skill = $result["SUCCESSOR"];
-						if($skill == 0){
-							//Break if there is no next skill to look up.
-							break;
-						}
-					}else{
-						//Break if we don't qualify for the current skill.
-						break;
-					}
-				}
-				$romData[$first_encounter_byte + $i * $encounter_data_length + 2 + $j] = chr($return_skill);
-			}
-			//Hoodsquid should always know LureDance
-			//$romData[0xD0335] = chr(0x7A);
-			if($i == 26){
-				$romData[$first_encounter_byte + $i * $encounter_data_length + 4] = chr(0x7A);
-			}
-			
-			for($j = 0; $j < 3; $j++){
-				if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 2]) == 0xFF){
-					swap($first_encounter_byte + $i * $encounter_data_length + 2,$first_encounter_byte + $i * $encounter_data_length + 3);
-				}
-				if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 3]) == 0xFF){
-					swap($first_encounter_byte + $i * $encounter_data_length + 3,$first_encounter_byte + $i * $encounter_data_length + 4);
-				}
-				if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 4]) == 0xFF){
-					swap($first_encounter_byte + $i * $encounter_data_length + 4,$first_encounter_byte + $i * $encounter_data_length + 5);
-				}
-			}
-			
-			
-			//TODO: Make WLD zero for all random encounters
 		}
-		
 		//Ramp up early EXP gains with the following statements.
 		if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 7]) * 256 < 20)
 		{
@@ -673,6 +615,76 @@ function ShuffleEncounters()
 			$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2] = chr(999 % 256);
 			$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2 + 1] = chr(999 / 256);
 		}
+		
+		
+		
+		
+		//Now, let's teach random encounters their skills.  We'll give them the three they're supposed to learn, plus a bonus skill, and let it level up appropriately.
+		$lv  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 9]);
+		$hp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2 + 1]);
+		$mp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2 + 1]);
+		$atk = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2 + 1]);
+		$def = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2 + 1]);
+		$agl = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2 + 1]);
+		$int = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2 + 1]);
+		
+		for($j = 0; $j < 4; $j++){
+			//Loop through all three skills the monster should learn, plus a BONUS SKILL
+			if($j <> 3){
+				$skill = ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 10 + $j]);
+			}else{
+				$skill = Random() % 169 + 1;
+				//Re-roll until this isn't the same skill as the three it innately learns.
+				while($skill == $romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 10 + 0] ||
+					  $skill == $romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 10 + 1] ||
+					  $skill == $romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 10 + 2])
+					  {
+					$skill = Random() % 169 + 1;
+				}
+			}
+			
+			//This variable is the "return value" from our loop.
+			$return_skill = 0xFF; //0xFF is "no skill".
+			while(true){
+				//"Skill" is the ID of the skill we're trying to learn.
+				$skill_qry = "select * from dragonwarriormonsters2_skills where id = ".$skill." and lv <= ".$lv." and hp <= ".$hp." and mp <= ".$mp." and atk <= ".$atk." and def <= ".$def." and agl <= ".$agl." and `int` <= ".$int;
+				execute($skill_qry);
+				$result = get();
+				if(count($result) !== 0){
+					//If we can learn this skill, plug it into return_skill
+					$return_skill = $result["id"];
+					$skill = $result["SUCCESSOR"];
+					//echo 'Evolve into '.$result['Name'].': '.$lv.', '.$hp.', '.$mp.', '.$atk.', '.$def.', '.$agl.', '.$int.'<br>';
+					if($skill == 0){
+						//Break if there is no next skill to look up.
+						break;
+					}
+				}else{
+					//echo 'No evolution: '.$lv.', '.$hp.', '.$mp.', '.$atk.', '.$def.', '.$agl.', '.$int.'<br>';
+					//Break if we don't qualify for the current skill.
+					break;
+				}
+			}
+			$romData[$first_encounter_byte + $i * $encounter_data_length + 2 + $j] = chr($return_skill);
+		}
+		//Hoodsquid should always know LureDance as its fourth move
+		if($i == 26){
+			$romData[$first_encounter_byte + $i * $encounter_data_length + 4] = chr(0x7A);
+		}
+		
+		//Swap empty moves to the back.  Just gonna a "brute force" bubble sort; could be more efficient but it's nine swaps so whatever.
+		for($j = 0; $j < 3; $j++){
+			if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 2]) == 0xFF){
+				swap($first_encounter_byte + $i * $encounter_data_length + 2,$first_encounter_byte + $i * $encounter_data_length + 3);
+			}
+			if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 3]) == 0xFF){
+				swap($first_encounter_byte + $i * $encounter_data_length + 3,$first_encounter_byte + $i * $encounter_data_length + 4);
+			}
+			if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 4]) == 0xFF){
+				swap($first_encounter_byte + $i * $encounter_data_length + 4,$first_encounter_byte + $i * $encounter_data_length + 5);
+			}
+		}
+		//END ENCOUNTER SKILLS
 	}
 
 	//TODO: If it needs it, make starting monster have a minimum of 10 on each stat (15-20 for HP/MP?)
@@ -683,6 +695,7 @@ function ShuffleEncounters()
 	//TODO: Why did Putrepup in Ice world hit so hard?
 	//TODO: Sky world enemies hurt!!!
 	//TODO: Mudo's HP was randomized and it hurt WutFace
+	//TODO: Make WLD zero for all random encounters
 	
 	return true;
 }
