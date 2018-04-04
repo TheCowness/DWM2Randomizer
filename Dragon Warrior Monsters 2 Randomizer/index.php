@@ -696,6 +696,8 @@ function ShuffleEncounters()
 	//TODO: Sky world enemies hurt!!!
 	//TODO: Mudo's HP was randomized and it hurt WutFace
 	//TODO: Make WLD zero for all random encounters
+	//TODO: Why is this where the TODOs are?
+	//TODO: Maybe make it easier for random encounters to learn skills, so that early monsters know things? (Only use level requirement?)
 	
 	return true;
 }
@@ -851,6 +853,9 @@ DWM2R();
 <div class="container-fluid" style="max-width:800px;margin:0px auto;">
 	<div class="row">
 		This randomizer will work with both Cobi's Journey or Tara's Adventure, but the resulting rom will vary slightly based on which one you use.  Note that this randomizer is still in beta, and consequently has a few known bugs and isn't quite feature-complete.
+	</div>
+	<div class="row">
+		For more details on how this randomizer works, planned features and changelog, and the source code/data, checkout the ReadMe on GitHub: <a href="https://github.com/TheCowness/DWM2Randomizer">https://github.com/TheCowness/DWM2Randomizer</a>
 	</div>
 </div>
 

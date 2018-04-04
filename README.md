@@ -2,7 +2,7 @@
 Randomizer for Dragon Warrior Monsters II
 3/27/2018
 
-This respository for is the source code for the DWM2 Randomizer hosted at https://cowness.net/DWM2R/
+This repository for is the source code for the DWM2 Randomizer hosted at https://cowness.net/DWM2R/
 
 
 Current Features:
@@ -26,7 +26,6 @@ Known notable issues:
 Short-Term Planned Fixes/Features:
  - Need to make sure boss monsters' HP doesn't get turned into ATK...
  - Pokemon Trainer Mode: Choose from three random starting monsters (Won't affect the rest of the seed)
- - Random encounters aren't learning "evolved" spells/skills, and don't even learn those until around Ice.
 
 
 Long-Term Planned Features:
