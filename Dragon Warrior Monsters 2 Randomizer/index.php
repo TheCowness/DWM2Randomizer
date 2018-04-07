@@ -134,6 +134,8 @@ function DWM2R()
 		//Some functions to dump the ROM in hexidecimal or text format
 		//RomDump();
 		//RomTextDump();
+		//This function will attempt to find all of the bosses in the ROM data based on stats I pulled from Gamefaqs
+		//LocateBosses();
 		//die();
 		if(strlen($romData) > 0){
 			hackRom();
@@ -159,6 +161,11 @@ function hackRom()
 	$tmp_seed = floor($tmp_seed / 65536);
 	$discard = $tmp_seed % 16;
 	
+	for($j = 0; $j < $flags["StartingMonster"]; $j++){
+		//Burn random numbers to make monster choice matter.
+		Random();
+	}
+	
 	PopulateValidMonsterIDs();
 	ShuffleMonsterGrowth();
 	ShuffleMonsterResistances();
@@ -168,7 +175,7 @@ function hackRom()
 	//TODO: Shuffle random items?
 	//TODO: Shuffle shops/item prices
 	CodePatches();
-
+	
 	return true;
 }
 
@@ -555,12 +562,42 @@ function ShuffleEncounters()
 			}
 			
 			$skip_hp_cuz_boss = 0;
-			/*
-			//TODO: Put in better boss detection (i.e. get a list of the indexes of all bosses)
-			if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2 + 1]) > 3){
-				$skip_hp_cuz_boss = 1;
+			//Here's a list of all of the bosses in the speedrun.  I hope.
+			//I don't have stats for all of the arena monsters, and I'm not finding the post-game monsters in the ROM data.
+			//In fact, I'm only finding partial matches for most of THESE monsters... would Gamefaqs lie to me?
+			switch($i){
+				case 385: //Oasis Beavern
+				case 6: //Oasis CurseLamp
+				case 130: //K-1 Babble
+				case 131: //K-1 PearlGel
+				case 132: //K-2 SpikyBoy
+				case 133: //K-2 Pixy
+				case 134: //K-2 Dracky
+				case 135: //K-3 MadRaven
+				case 136: //K-3 Kitehawk
+				case 135: //K-3 MadRaven
+				case 25: //Pirate Hoodsquid
+				case 398: //Pirate Boneslave
+				case 27: //Pirate CaptDead
+				case 399: //Pirate KingSquid
+				case 49: //Ice Bombcrag
+				case 408: //Ice AgDevil
+				case 409: //Ice Puppetor
+				case 67: //Ice Goathorn
+				case 410: //Ice ArcDemon
+				case 411: //Ice Goathorn 2
+				case 426: //Sky MadCondor
+				case 108: //Sky Skeletor
+				case 99: //Sky Niterich
+				case 421: //Sky Metabble
+				case 107: //Sky EvilArmor
+				case 106: //Sky Mudou
+				case 115: //Limbo GigaDraco
+				case 114: //Limbo Centasaur
+				case 116: //Limbo Garudian
+				case 376: //Limbo Darck
+					$skip_hp_cuz_boss = 1;
 			}
-			*/
 			
 			//Add up the monster's GROWTH values
 			$total_growth_stats = 0;
@@ -569,6 +606,9 @@ function ShuffleEncounters()
 				if($j == 0 && $skip_hp_cuz_boss) continue;
 				$total_growth_stats += ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 14 + $j]);
 			}
+			//Double the base stats for our starting monster, because Slash is a little weak at level one.
+			if($j == 0) $total_growth_stats *= 2;
+			
 			//Add up the monster's BASE STATS
 			$total_stats = 0;
 			for ($j = 0; $j < 6; $j++)
@@ -767,6 +807,145 @@ function CodePatches(){
 	
 	$romData[0x3FB9] = chr(0xC9);	//	RET 		End subroutine (Instruction previously at 0x186F)
 	//TODO: Is it possible to get rid of all of the people in front of the monster breeder?
+}
+
+function LocateBosses(){
+	//I haven't been citing my sources for all of the information I'm pulling from Gamefaqs since it's in the ROM data anyway...
+	//...but this data doesn't seem to be entirely accurate thecowLUL
+	//boss stats source: https://gamefaqs.gamespot.com/gbc/525414-dragon-warrior-monsters-2-cobis-journey/faqs/14383
+	
+	global $romData;
+	
+	$encounter_data_length = 26;
+	$first_encounter_byte = 0xD008F;
+	$encounter_count = 614;
+	$monster_data_length = 47;
+	$first_monster_byte = 0xD4368;
+	//Really shoulda put this in the database...
+	$boss_stats = array(
+		array("Oasis Beavern",5,98,16,20,8,36,120),
+		array("Oasis CurseLamp",5,220,8,27,10,44,65),
+		array("K-1 Babble",6,36,9,14,13,32,123),
+		array("K-1 PearlGel",5,15,12,17,35,51,96),
+		array("K-2 SpikyBoy",6,19,42,17,31,34,96),
+		array("K-2 Pixy",7,29,24,20,14,54,79),
+		array("K-2 Dracky",7,40,22,14,12,70,96),
+		array("K-3 MadRaven",9,41,55,16,30,84,163),
+		array("K-3 Kitehawk",9,46,35,26,21,42,146),
+		array("K-3 MadRaven",9,41,55,16,30,84,163),
+		array("Pirate Hoodsquid",12,350,100,78,39,85,180),
+		array("Pirate Boneslave",13,72,58,58,45,49,99),
+		array("Pirate CaptDead",13,500,105,66,48,50,144),
+		array("Pirate KingSquid",38,2500,140,227,147,189,73),
+		array("Ice Bombcrag",18,650,10,80,80,20,140),
+		array("Ice AgDevil",18,550,50,90,59,109,216),
+		array("Ice Puppetor",22,400,82,85,60,48,120),
+		array("Ice Goathorn",27,850,89,95,65,92,165),
+		array("Ice ArcDemon",27,210,89,105,71,84,211),
+		array("Ice Goathorn 2",27,330,89,95,65,92,223),
+		array("Sky MadCondor",30,600,119,131,90,110,159),
+		array("Sky Skeletor",37,226,108,160,148,140,140),
+		array("Sky Niterich",36,1500,106,177,149,110,510),
+		array("Sky Metabble",37,20,368,95,999,670,522),
+		array("Sky EvilArmor",38,450,140,185,150,138,280),
+		array("Sky Mudou",38,3000,413,225,160,156,150),
+		array("Limbo GigaDraco",42,1000,245,277,180,120,100),
+		array("Limbo Centasaur",40,900,83,220,150,250,250),
+		array("Limbo Garudian",41,800,88,206,160,251,320),
+		array("Limbo Darck",44,4000,235,350,220,160,210),
+		array("Butch Butch",0,755,322,547,238,644,500),
+		array("Butch Pumpoise",40,800,388,238,255,330,500),
+		array("Butch Drygon",40,480,210,432,677,270,500),
+		array("Kameha50 MimeSlime",43,370,690,258,320,350,520),
+		array("Kameha50 Tonguella",45,400,320,338,310,284,430),
+		array("Kameha50 Golem",48,520,315,410,301,189,540),
+		array("Kameha150 MetalKing",50,200,950,310,780,840,700),
+		array("Kameha150 KingLeo",55,1200,490,370,480,460,680),
+		array("Kameha150 GoldGolem",50,900,590,430,600,370,700),
+		array("Terry GreatDrak",52,840,330,375,400,299,300),
+		array("Terry Watabou",40,610,467,320,380,178,150),
+		array("Terry Durran",53,1000,470,420,430,326,450),
+		array("Elf Arrowdog",40,500,210,237,288,249,501),
+		array("Elf AgDevil",47,1500,580,346,310,267,700),
+		array("Power WindBeast",40,900,127,236,168,489,0),
+		array("Power MadGoose",40,580,387,201,203,348,0),
+		array("Power WhaleMage",42,750,590,199,228,247,0),
+		array("Power SeaHorse",37,480,180,191,253,222,0),
+		array("Power Octoreach",39,700,140,238,174,247,0),
+		array("Power IceMan",45,1200,500,345,279,210,0),
+		array("Power Shadow",40,600,300,235,240,170,0),
+		array("Power BigEye",37,750,280,358,242,198,0),
+		array("Power Balzak",45,2000,398,375,257,220,0),
+		array("Power RotRaven",35,680,340,160,249,340,0),
+		array("Power Jamirus",48,1400,750,247,349,410,0),
+		array("Power SkyDragon",46,990,700,349,279,243,0),
+		array("Power Gremlin",40,600,450,201,232,218,0),
+		array("Traveler Pixy",52,680,400,357,374,443,700),
+		array("Traveler Copycat",55,750,300,310,520,380,999),
+		array("Traveler StoneMan",52,1300,360,458,268,247,700),
+		array("Traveler WhipBird",53,950,830,334,374,438,700),
+		array("Traveler MetalKing",48,600,200,410,859,320,160),
+		array("Traveler RainHawk",99,3500,520,710,540,250,300),
+		array("Traveler Coatol",46,1500,210,600,600,300,255),
+		array("Baffle Crestpent",42,780,700,279,300,299,480),
+		array("Baffle SpotKing",45,1300,550,378,214,308,800),
+		array("Baffle Gulpple",45,840,590,289,299,387,0),
+		array("Baffle FairyDrak",40,700,340,312,298,273,0),
+		array("Baffle DuckKite",42,900,470,296,330,400,0),
+		array("Baffle FunkyBird",42,890,500,301,267,430,0),
+		array("Baffle FunkyBird",42,890,500,301,267,430,0),
+		array("Baffle Slurperon",39,790,400,277,259,302,0),
+		array("Baffle DanceVegi",37,680,430,259,249,240,0),
+		array("Baffle MadPlant",39,880,380,243,350,289,510),
+		array("Baffle Orc",43,900,350,346,289,190,770,6000),
+		array("Baffle PutrePup",41,700,280,330,328,232,450),
+		array("Baffle Devipine",43,840,400,300,358,222,660),
+		array("Baffle Anemon",44,900,370,248,388,289,580),
+		array("Baffle HerbMan",46,1300,700,341,273,370,900),
+		array("Soul KingSlime",50,4000,280,329,289,334,800),
+		array("Soul Coatol",48,640,800,289,410,329,800),
+		array("Soul FangSlime",44,700,378,333,278,397,590),
+		array("Soul Grizzly",45,870,360,372,245,379,288),
+		array("Soul BeastNite",45,1200,420,358,343,201,600),
+		array("Soul Slimeborg",44,650,790,217,327,418,740),
+		array("Soul Unicorn",45,720,680,316,322,319,800),
+		array("Soul SuperTen",44,600,380,312,298,417,600),
+		array("Soul Slime",47,600,500,387,299,387,700),
+		array("Soul RockSlime",40,680,230,265,362,265,450),
+		array("Soul Metabble",40,289,700,146,798,688,770),
+		array("Soul Gorago",55,990,780,432,378,688,800)
+	);
+	
+	foreach($boss_stats as $boss){
+		$foundit = 0;
+		for ($i = 0; $i < $encounter_count; $i++){
+			//Now, let's teach random encounters their skills.  We'll give them the three they're supposed to learn, plus a bonus skill, and let it level up appropriately.
+			$lv  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 9]);
+			$hp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 0 * 2 + 1]);
+			$mp  = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 1 * 2 + 1]);
+			$atk = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 2 * 2 + 1]);
+			$def = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 3 * 2 + 1]);
+			$agl = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 4 * 2 + 1]);
+			$int = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + 5 * 2 + 1]);
+			
+			$pts = 0;
+			if($boss[1] == $lv ) $pts++;
+			if($boss[2] == $hp ) $pts++;
+			if($boss[3] == $mp ) $pts++;
+			if($boss[4] == $atk) $pts++;
+			if($boss[5] == $def) $pts++;
+			if($boss[6] == $agl) $pts++;
+			if($boss[7] == $int) $pts++;
+			
+			if($pts > 2){
+				$foundit = 1;
+				echo $boss[0].' located: '.$i.' ('.$pts.')<br>';
+			}
+		}
+		if($foundit == 0){
+			echo $boss[0].' NOT located!<br>';
+		}
+	}
 }
 
 DWM2R();
