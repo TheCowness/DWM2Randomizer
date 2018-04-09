@@ -1,5 +1,5 @@
 <?php
-/* dbsettings.php just overwrites these three variables */
+/* dbsettings.php just overwrites these three variables, forces SSL, and turns off error reporting */
 $dbaddress = 'localhost';
 $dbuser = 'USERNAME';
 $dbpass = 'PASSWORD';
@@ -153,6 +153,7 @@ function hackRom()
 	global $seed;
 	global $discard;
 	global $initial_seed;
+	global $flags;
 	$tmp_seed = $initial_seed;
 	
 	$counter = $tmp_seed % 256;
@@ -226,10 +227,11 @@ function saveRom()
 	$file = fopen($filename, "w");
 	fwrite($file,$romData);
 	*/
+	
 	header('Content-Disposition: attachment; filename="DWM2_Rando_'.$initial_seed.'.gbc"');
 	header("Content-Size: ".strlen($romData)*512);
 	echo $romData;
-	//die();
+	die();
 }
 
 function swap($firstAddress, $secondAddress)
@@ -606,8 +608,6 @@ function ShuffleEncounters()
 				if($j == 0 && $skip_hp_cuz_boss) continue;
 				$total_growth_stats += ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 14 + $j]);
 			}
-			//Double the base stats for our starting monster, because Slash is a little weak at level one.
-			if($j == 0) $total_growth_stats *= 2;
 			
 			//Add up the monster's BASE STATS
 			$total_stats = 0;
@@ -617,6 +617,9 @@ function ShuffleEncounters()
 				$total_stats += ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2]);
 				$total_stats += ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1]) * 256;
 			}
+			//Double the base stats for our starting monster, because Slash is a little weak at level one.
+			if($j == 0) $total_stats *= 2;
+			
 			//Take the percentage of the GROWTH allocated to each stat and multiply by the total BASE
 			for ($j = 0; $j < 6; $j++)
 			{
