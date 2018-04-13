@@ -998,13 +998,17 @@ DWM2R();
 	<div class="row">
 		<div class="col-sm">Monster Growth</div>
 		<div class="col-sm"><input type="radio" name="Growth" value="Redistribute" id="growth_redist" <?php echo $Flags['Growth'] == 'Redistribute' ? 'checked' : '' ?> /> <label for="growth_redist" title="Monster stat growth values will add to the same total, but will be randomly distributed.">Redistribute</label></div>
+		<!-- TODO: Implement shuffle option
 		<div class="col-sm"><input type="radio" name="Growth" value="Shuffle" id="growth_shuffle" disabled <?php echo $Flags['Growth'] == 'Shuffle' ? 'checked' : '' ?> /> <label for="growth_shuffle" title="Monsters will keep the same six growth values, but they will be randomly shuffled.">Shuffle</label></div>
+		-->
 		<div class="col-sm"><input type="radio" name="Growth" value="None" id="growth_none" <?php echo $Flags['Growth'] == 'None' ? 'checked' : '' ?> /> <label for="growth_none" title="Do not randomize monster stats.">None</label></div>
 	</div>
 	<div class="row">
 		<div class="col-sm">Monster Resistances</div>
 		<div class="col-sm"><input type="radio" name="Resistance" value="Redistribute" id="resistance_redist" <?php echo $Flags['Resistance'] == 'Redistribute' ? 'checked' : '' ?> /> <label for="resistance_redist" title="Monster stat resistance values will add to the same total, but will be randomly distributed.">Redistribute</label></div>
-		<div class="col-sm"><input type="radio" name="Resistance" value="Shuffle" id="resistance_shuffle" disabled  <?php echo $Flags['Resistance'] == 'Shuffle' ? 'checked' : '' ?> /> <label for="resistance_shuffle" title="Monsters will keep the same 27 resistance values, but they will be randomly shuffled.">Shuffle</label></div>
+		<!-- TODO: Implement shuffle option
+<div class="col-sm"><input type="radio" name="Resistance" value="Shuffle" id="resistance_shuffle" disabled  <?php echo $Flags['Resistance'] == 'Shuffle' ? 'checked' : '' ?> /> <label for="resistance_shuffle" title="Monsters will keep the same 27 resistance values, but they will be randomly shuffled.">Shuffle</label></div>
+		-->
 		<div class="col-sm"><input type="radio" name="Resistance" value="None" id="resistance_none" <?php echo $Flags['Resistance'] == 'None' ? 'checked' : '' ?> /> <label for="resistance_none" title="Do not randomize monster stats.">None</label></div>
 	</div>
 	<div class="row">
@@ -1064,6 +1068,9 @@ $(document).ready(function(){
 	$("input[type=radio]").change(function(){
 		RefreshFlagString();
 	});
+	$("select").change(function(){
+		RefreshFlagString();
+	});
 	//When the flag string is changed, update all fields
 	$("#flags_input").change(function(){
 		SetFlagsFromString();
@@ -1074,16 +1081,22 @@ $(document).ready(function(){
 function NewSeed(){
 	$("#seed_input").val(Math.floor(Math.random()*268435455));
 }
+
+
+//Number of 6-bit values required to represent an HTML "select" value.
+select_max_size = 2;
 function RefreshFlagString(){
 	//This function will serialize the important form flags into a text string so that they can be shared for races.
 	//Because JS integers are basically 32-bit, we'll have to utilize an array.
 	//Let's have each array value hold a six-bit integer (0-63), which will ultimately be represented in text by a single character
+	//I realized later that I basically reinvented base-64 encoding here...
 	flags = [];
 	flag_ctr = 0;
 	flag_chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-';
-	//Start with all radio buttons.
+	//Start with all radio buttons.  Six radio buttons can be stored in one 6-bit array value
 	$("input[type=radio]").each(function(){
 		if(flag_ctr % 6 == 0){
+			//Initialize the next array index
 			flags.push(0);
 		}
 		if($(this).prop("checked")){
@@ -1093,7 +1106,14 @@ function RefreshFlagString(){
 		}
 		flag_ctr++;
 	});
+	//Now do selects.  Assume all select values are integers less than (64 ^ select_max_size)
+	$("select").each(function(){
+		for(i = 0; i < select_max_size; i++){
+			flags.push(Math.floor($(this).val() / (64 ** i)) % 64);
+		}
+	});
 	
+	//Convert our array into a "base 64" string and output to the Flags field.
 	$("#flags_input").val('');
 	for(i = 0; i < flags.length; i++){
 		$("#flags_input").val($("#flags_input").val()+flag_chars.charAt(flags[i]));
@@ -1118,6 +1138,15 @@ function SetFlagsFromString(){
 			$(this).removeProp("checked");
 		}
 		flag_ctr++;
+	});
+	//Continue with Selects.
+	$("select").each(function(){
+		_newval = 0;
+		for(i = 0; i < select_max_size; i++){
+			_newval += flags[flag_ctr / 6] * 64 ** i;
+			flag_ctr += 6;
+		}
+		$(this).val(_newval);
 	});
 }
 </script>
