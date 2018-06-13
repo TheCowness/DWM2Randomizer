@@ -85,6 +85,7 @@ function DWM2R()
 	global $initial_seed;
 	global $romData;
 	
+	//Parse out the flags.  I'm basing it on the individual form fields, not the flags string, because the flags string is dynamically generated on the JS front-end, and I can't really make that dynamic on the PHP side.
 	if(array_key_exists("StartingMonster",$_REQUEST)){
 		$Flags["StartingMonster"] = trim($_REQUEST["StartingMonster"]);
 	}else{
@@ -163,10 +164,12 @@ function hackRom()
 	$discard = $tmp_seed % 16;
 	
 	for($j = 0; $j < $flags["StartingMonster"]; $j++){
-		//Burn random numbers to make monster choice matter.
+		//Burn random numbers to make monster choice affect the randomization.
+		//TODO: Should all flags do this?
 		Random();
 	}
 	
+	//Now, we actually do the randomizing.  Each step of the randomizer is its own function, for code cleanliness.
 	PopulateValidMonsterIDs();
 	ShuffleMonsterGrowth();
 	ShuffleMonsterResistances();
@@ -176,8 +179,31 @@ function hackRom()
 	//TODO: Shuffle random items?
 	//TODO: Shuffle shops/item prices
 	CodePatches();
+	Analytics();
 	
 	return true;
+}
+
+
+function Analytics()
+{
+	//This function logs intrusive analytical data so I can see how often this randomizer gets played
+	global $initial_seed;
+	global $flags;
+	
+	//Logging IP address, user agent, flags, seed, and current time.
+	//Is your user agent any of my business?  Not really, but don't worry about it.
+	execute("
+		INSERT INTO dwm2r_activitymonitor
+		(IPAddress,UserAgent,Flags,Seed,CreatedDTS)
+		VALUES (
+			'".$_SERVER['REMOTE_ADDR']."',
+			'".$_SERVER['HTTP_USER_AGENT']."',
+			'".trim($_REQUEST["Flags"])."',
+			'".$initial_seed."',
+			NOW()
+		)
+	");
 }
 
 function loadRom()
@@ -236,6 +262,7 @@ function saveRom()
 
 function swap($firstAddress, $secondAddress)
 {
+	//This function just switches one value in the rom data with another.  Useful when shuffling data.
 	global $romData;
 	$holdAddress = $romData[$secondAddress];
 	$romData[$secondAddress] = $romData[$firstAddress];
@@ -245,6 +272,7 @@ function swap($firstAddress, $secondAddress)
 
 function WriteText($address, $text)
 {
+	//This function translates text to binary code.  Text is uncompressed in DWM2, but it isn't mapped the same as ASCII.
 	global $romData;
 	$i = 0;
 	for($j = 0; $j < strlen($text); $j++)
@@ -715,7 +743,7 @@ function ShuffleEncounters()
 			$romData[$first_encounter_byte + $i * $encounter_data_length + 4] = chr(0x7A);
 		}
 		
-		//Swap empty moves to the back.  Just gonna a "brute force" bubble sort; could be more efficient but it's nine swaps so whatever.
+		//Swap empty moves to the back.  Just gonna "brute force" a bubble sort; could be more efficient but it's nine swaps max so whatever.
 		for($j = 0; $j < 3; $j++){
 			if(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 2]) == 0xFF){
 				swap($first_encounter_byte + $i * $encounter_data_length + 2,$first_encounter_byte + $i * $encounter_data_length + 3);
