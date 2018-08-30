@@ -121,6 +121,21 @@ function DWM2R()
 	}else{
 		$Flags["GeniusMode"] = 'Off';
 	}
+	if(array_key_exists("EXPScaling",$_REQUEST)){
+		$Flags["EXPScaling"] = trim($_REQUEST["EXPScaling"]);
+	}else{
+		$Flags["EXPScaling"] = 100;
+	}
+	if(array_key_exists("StatScaling",$_REQUEST)){
+		$Flags["StatScaling"] = trim($_REQUEST["StatScaling"]);
+	}else{
+		$Flags["StatScaling"] = 100;
+	}
+	if(array_key_exists("BossScaling",$_REQUEST)){
+		$Flags["BossScaling"] = trim($_REQUEST["BossScaling"]);
+	}else{
+		$Flags["BossScaling"] = 100;
+	}
 	if(array_key_exists("Seed",$_REQUEST)){
 		$Flags["Seed"] = trim($_REQUEST["Seed"]);
 	}else{
@@ -451,10 +466,19 @@ function ShuffleMonsterGrowth()
 			$romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot1] = chr(ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot1]) + 10);
 			$total_stats -= 30;
 
-			while ($total_stats > 0)
+			if($total_stats > 31*6) $total_stats = 31*6;
+			while($total_stats > 0)
 			{
 				$slot = Random() % 6;
+				$safety = 0;
 				//Do not let the stat go over 31
+				//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
+				while(ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot]) >= 31){
+					$slot = ($slot + 1) % 6;
+					$safety++;
+					if($safety >= 6) break;
+				}
+				if($safety >= 6) break;
 				if (ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot]) < 31)
 				{
 					$romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot] = chr(ord($romData[$first_monster_byte + $i * $monster_data_length + 14 + $slot]) + 1);
@@ -493,11 +517,19 @@ function ShuffleMonsterResistances()
 			$total_resistances += ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $j]);
 			$romData[$first_monster_byte + $i * $monster_data_length + 20 + $j] = chr(0);
 		}
+		if($total_resistances > 27*3) $total_resistances = 27*3;
 		while ($total_resistances > 0)
 		{
 			$slot = Random() % 27;
+			//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
+			while(ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot]) >= 3){
+				$slot = ($slot + 1) % 27;
+				$safety++;
+				if($safety >= 27) break;
+			}
+			if($safety >= 27) break;
 			//Do not let the stat go over 3
-			if (ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot]) <= 3)
+			if (ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot]) < 3)
 			{
 				$romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot] = chr(ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot]) + 1);
 				$total_resistances--;
@@ -591,7 +623,7 @@ function ShuffleEncounters()
 				$romData[$first_encounter_byte + $i * $encounter_data_length + 1] = chr(floor($monsterid / 256));
 			}
 			
-			$skip_hp_cuz_boss = 0;
+			$is_boss_I_think = 0;
 			//Here's a list of all of the bosses in the speedrun.  I hope.
 			//I don't have stats for all of the arena monsters, and I'm not finding the post-game monsters in the ROM data.
 			//In fact, I'm only finding partial matches for most of THESE monsters... would Gamefaqs lie to me?
@@ -626,14 +658,14 @@ function ShuffleEncounters()
 				case 114: //Limbo Centasaur
 				case 116: //Limbo Garudian
 				case 376: //Limbo Darck
-					$skip_hp_cuz_boss = 1;
+					$is_boss_I_think = 1;
 			}
 			
 			//Add up the monster's GROWTH values
 			$total_growth_stats = 0;
 			for ($j = 0; $j < 6; $j++)
 			{
-				if($j == 0 && $skip_hp_cuz_boss) continue;
+				if($j == 0 && $is_boss_I_think) continue;
 				$total_growth_stats += ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 14 + $j]);
 			}
 			
@@ -641,7 +673,7 @@ function ShuffleEncounters()
 			$total_stats = 0;
 			for ($j = 0; $j < 6; $j++)
 			{
-				if($j == 0 && $skip_hp_cuz_boss) continue;
+				if($j == 0 && $is_boss_I_think) continue;
 				$total_stats += ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2]);
 				$total_stats += ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1]) * 256;
 			}
@@ -651,20 +683,49 @@ function ShuffleEncounters()
 			//Take the percentage of the GROWTH allocated to each stat and multiply by the total BASE
 			for ($j = 0; $j < 6; $j++)
 			{
-				if($j == 0 && $skip_hp_cuz_boss) continue;
-				$new_stat = ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 14 + $j]);
-				$new_stat = floor($new_stat * $total_stats / $total_growth_stats);
-				
-				//Everyone gets minimum 10 HP and 5 str, agi, def, int.  (MP can be zero)
-				//If this is our starting monster (Slash), double the baseline for all of those.
-				if($j == 0){
-					if($new_stat < 10 * (($i == 0) ? 2 : 1)) $new_stat = 10 * (($i == 0) ? 2 : 1);
-				}elseif(($j == 2) or ($j == 3) or ($j == 4) or ($j == 5)){
-					if($new_stat < 5 * (($i == 0) ? 2 : 1)) $new_stat = 5 * (($i == 0) ? 2 : 1);
+				//TODO: Test stat scaling Kappa
+				if($j == 0 && $is_boss_I_think){
+					//2018 08 30 - ealm - TODO: Why is this continue here?
+					//continue;
+					//We're handling boss HP differently.  Basically, we're not changing it.  However...
+					//2018 06 25 - ealm - Adding base stat scaling flags
+					$new_stat = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2]);
+					$new_stat = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1]) * 256;
+					
+					//I actually don't want HP to scale the same as other stats.  Let's "soften" the effect of the scalar if it's over 100%.
+					$scalar = $Flags["BossScaling"]/100;
+					//Turns 500/400/300/200 into 300/250/200/150.
+					if($scalar > 1) $scalar = ($scalar - 1) / 2 + 1;
+										
+					$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2] = chr($new_stat % 256);
+					$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1] = chr($new_stat / 256);
+				}else{
+					//2018 06 25 - ealm - Renaming this variable for clarity.  This is the growth value for this stat.
+					$stat_growth = ord($romData[$first_monster_byte + $MonsterGrowthIndex * $monster_data_length + 14 + $j]);
+					//Divide by total growth stats to get this stat's "share" ratio, multiply by total base stats
+					$new_stat = floor($stat_growth * $total_stats / $total_growth_stats);
+					
+					//2018 06 25 - ealm - Adding base stat scaling flags
+					$scalar = 1;
+					if($is_boss_I_think) $scalar = $Flags["BossScaling"]/100;
+					else $scalar = $Flags["StatScaling"]/100;
+					$new_stat *= $scalar;
+					
+					
+					
+					//Everyone gets minimum 10 HP and 5 str, agi, def, int.  (MP can be zero)
+					//If this is our starting monster (Slash), double the baseline for all of those.
+					if($j == 0){
+						if($new_stat < 10 * (($i == 0) ? 2 : 1)) $new_stat = 10 * (($i == 0) ? 2 : 1);
+					}elseif(($j == 2) or ($j == 3) or ($j == 4) or ($j == 5)){
+						if($new_stat < 5 * (($i == 0) ? 2 : 1)) $new_stat = 5 * (($i == 0) ? 2 : 1);
+					}
+					//2018 06 25 - ealm - Why wasn't this already in here?  Please cap stats (except boss HP, handled above) at 999...
+					if($new_stat > 999) $new_stat = 999;
+					
+					$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2] = chr($new_stat % 256);
+					$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1] = chr($new_stat / 256);
 				}
-				
-				$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2] = chr($new_stat % 256);
-				$romData[$first_encounter_byte + $i * $encounter_data_length + 10 + $j * 2 + 1] = chr($new_stat / 256);
 			}
 		}
 		//Ramp up early EXP gains with the following statements.
@@ -680,6 +741,14 @@ function ShuffleEncounters()
 		{
 			$romData[$first_encounter_byte + $i * $encounter_data_length + 6] = chr(ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) * 1.5);
 		}
+		//2018 25 2018 - ealm - Adding global EXP scalar (TODO: Test this lol)
+		$global_exp_scalar = $Flags["EXPScaling"]/100;
+		$total_exp = ord($romData[$first_encounter_byte + $i * $encounter_data_length + 6]) + ord($romData[$first_encounter_byte + $i * $encounter_data_length + 7])*256;
+		$total_exp *= $global_exp_scalar;
+		
+		$romData[$first_encounter_byte + $i * $encounter_data_length + 6] = chr($total_exp % 256);
+		$romData[$first_encounter_byte + $i * $encounter_data_length + 7] = chr($total_exp / 256);
+		
 		
 		//If we're in Genius Mode, all wild monsters get 999 int
 		if($Flags["GeniusMode"] == "On"){
@@ -1053,6 +1122,32 @@ DWM2R();
 		<div class="col-sm">Max Monster Intelligence</div>
 		<div class="col-sm"><input type="radio" name="GeniusMode" value="On" id="geniusmode_on" <?php echo $Flags['GeniusMode'] == 'On' ? 'checked' : '' ?>> <label for="geniusmode_on" title="All wild monsters have 999 Int; all monsters have 31 int growth. (Overrides randomized base int/growth)" />On</label></div>
 		<div class="col-sm"><input type="radio" name="GeniusMode" value="Off" id="geniusmode_off" <?php echo $Flags['GeniusMode'] == 'Off' ? 'checked' : '' ?>> <label for="geniusmode_off" title="Do not max out monster intelligence." />Off</label></div>
+	</div>
+	<div class="row">
+		<div class="col-sm">Experience Yields</div>
+		<div class="col-sm"><input type="radio" name="EXPScaling" value="0"   id="exp_0"   <?php echo $Flags['EXPScaling'] == 0   ? 'checked' : '' ?>> <label for="exp_0"   title="Monsters will be worth 0% of their normal EXP yields (minimum 1 EXP)" />0%</label></div>
+		<div class="col-sm"><input type="radio" name="EXPScaling" value="50"  id="exp_50"  <?php echo $Flags['EXPScaling'] == 50  ? 'checked' : '' ?>> <label for="exp_50"  title="Monsters will be worth 50% of their normal EXP yields (minimum 1 EXP)" />50%</label></div>
+		<div class="col-sm"><input type="radio" name="EXPScaling" value="100" id="exp_100" <?php echo $Flags['EXPScaling'] == 100 ? 'checked' : '' ?>> <label for="exp_100" title="Monsters will be worth 100% of their normal EXP yields" />100%</label></div>
+		<div class="col-sm"><input type="radio" name="EXPScaling" value="200" id="exp_200" <?php echo $Flags['EXPScaling'] == 200 ? 'checked' : '' ?>> <label for="exp_200" title="Monsters will be worth 200% of their normal EXP yields" />200%</label></div>
+		<div class="col-sm"><input type="radio" name="EXPScaling" value="500" id="exp_500" <?php echo $Flags['EXPScaling'] == 500 ? 'checked' : '' ?>> <label for="exp_500" title="Monsters will be worth 500% of their normal EXP yields" />500%</label></div>
+	</div>
+	<div class="row">
+		<div class="col-sm">Wild Monster Stat Scaling</div>
+		<div class="col-sm"><input type="radio" name="StatScaling" value="0"   id="stats_0"   <?php echo $Flags['StatScaling'] == 0   ? 'checked' : '' ?>> <label for="stats_0"   title="Wild monster stats will be altered based on this scalar" />0%</label></div>
+		<div class="col-sm"><input type="radio" name="StatScaling" value="50"  id="stats_50"  <?php echo $Flags['StatScaling'] == 50  ? 'checked' : '' ?>> <label for="stats_50"  title="Wild monster stats will be altered based on this scalar" />50%</label></div>
+		<div class="col-sm"><input type="radio" name="StatScaling" value="100" id="stats_100" <?php echo $Flags['StatScaling'] == 100 ? 'checked' : '' ?>> <label for="stats_100" title="Wild monster stats will be altered based on this scalar" />100%</label></div>
+		<div class="col-sm"><input type="radio" name="StatScaling" value="200" id="stats_200" <?php echo $Flags['StatScaling'] == 200 ? 'checked' : '' ?>> <label for="stats_200" title="Wild monster stats will be altered based on this scalar" />200%</label></div>
+		<div class="col-sm"><input type="radio" name="StatScaling" value="500" id="stats_500" <?php echo $Flags['StatScaling'] == 500 ? 'checked' : '' ?>> <label for="stats_500" title="Wild monster stats will be altered based on this scalar" />500%</label></div>
+	</div>
+	<div class="row">
+		<div class="col-sm"><span title="test">Boss Monster Stat Scaling</span></div>
+		<div class="col-sm"><input type="radio" name="BossScaling" value="0"   id="boss_stats_0"   <?php echo $Flags['BossScaling'] == 0   ? 'checked' : '' ?>> <label for="boss_stats_0"   title="Boss stats will be altered based on this scalar" />0%</label></div>
+		<div class="col-sm"><input type="radio" name="BossScaling" value="50"  id="boss_stats_50"  <?php echo $Flags['BossScaling'] == 50  ? 'checked' : '' ?>> <label for="boss_stats_50"  title="Boss stats will be altered based on this scalar" />50%</label></div>
+		<div class="col-sm"><input type="radio" name="BossScaling" value="100" id="boss_stats_100" <?php echo $Flags['BossScaling'] == 100 ? 'checked' : '' ?>> <label for="boss_stats_100" title="Boss stats will be altered based on this scalar" />100%</label></div>
+		<div class="col-sm"><input type="radio" name="BossScaling" value="200" id="boss_stats_200" <?php echo $Flags['BossScaling'] == 200 ? 'checked' : '' ?>> <label for="boss_stats_200" title="Boss stats will be altered based on this scalar" />200%</label></div>
+		<div class="col-sm"><input type="radio" name="BossScaling" value="300" id="boss_stats_300" <?php echo $Flags['BossScaling'] == 300 ? 'checked' : '' ?>> <label for="boss_stats_300" title="Boss stats will be altered based on this scalar" />300%</label></div>
+		<div class="col-sm"><input type="radio" name="BossScaling" value="400" id="boss_stats_400" <?php echo $Flags['BossScaling'] == 400 ? 'checked' : '' ?>> <label for="boss_stats_400" title="Boss stats will be altered based on this scalar" />400%</label></div>
+		<div class="col-sm"><input type="radio" name="BossScaling" value="500" id="boss_stats_500" <?php echo $Flags['BossScaling'] == 500 ? 'checked' : '' ?>> <label for="boss_stats_500" title="Boss stats will be altered based on this scalar" />500%</label></div>
 	</div>
 	<div class="row">
 		<div class="col-sm">Yeti Mode</div>

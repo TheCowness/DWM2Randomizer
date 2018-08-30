@@ -1,6 +1,6 @@
 # DWM2Randomizer
 Randomizer for Dragon Warrior Monsters II
-3/27/2018
+6/25/2018
 
 This repository for is the source code for the DWM2 Randomizer hosted at https://cowness.net/DWM2R/
 
@@ -10,6 +10,9 @@ Current Features:
  - Randomized encounters: Which monsters appear in the field are randomized, with base stats altered to fit their randomized growths
  - Selectable Starting Monster
  - Genius Mode: All monsters have high intelligence, so that it's easier to learn your skills
+ - EXP Scaling: Alter the amount of experience yielded by enemies.
+ - Stat Scaling: Alter the stats that wild enemies have.  I've intentionally given a ton of options here until it's better-tested; some may be removed later.
+ - Boss Scaling: Similar to above, but HP scaling is softened slightly.
  - Yeti Mode: All* monsters are yetis!!!
  - QOL patches, such as opening the Starry Shrine's back door early to allow breeding during Oasis/Pirate.
 
