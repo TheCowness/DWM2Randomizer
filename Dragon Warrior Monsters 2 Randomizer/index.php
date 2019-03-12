@@ -521,6 +521,8 @@ function ShuffleMonsterResistances()
 		while ($total_resistances > 0)
 		{
 			$slot = Random() % 27;
+			//2019 03 11 - ealm - Initialize this variable idiot
+			$safety = 0;
 			//2018 08 30 - ealm - Instead of rerolling, let's just use the next stat.  I guess this encourages high stats to be adjacent though?
 			while(ord($romData[$first_monster_byte + $i * $monster_data_length + 20 + $slot]) >= 3){
 				$slot = ($slot + 1) % 27;
@@ -595,22 +597,23 @@ function ShuffleEncounters()
 
 	for ($i = 0; $i < $encounter_count; $i++)
 	{
+		//Which monster is this?
+		if($i == 0 && $Flags["StartingMonster"] != 0){
+			//Allow the starting monster to be selectable
+			$monsterid = $Flags["StartingMonster"];
+		}
+		elseif($i == 26){
+			//Special case: The hoodsquid needs to be a water-type. (0x13C - 0x15B, 32 monsters)
+			//TODO: Yeti Mode won't put a yeti here ):
+			$monsterid = Random() % 32 + 0x13C;
+		}else{
+			$monsterid = $ValidMonsterIDs[Random() % count($ValidMonsterIDs)];
+		}
+		$MonsterGrowthIndex = array_search($monsterid,$ValidMonsterGrowthIndecies);
+		
 		//Should probably choose monster independently of the rest of this.
 		if($Flags["Encounters"] == "Poorly") //Previously "Based On Growth"
 		{
-			//Which monster is this?
-			if($i == 0 && $Flags["StartingMonster"] != 0){
-				//Allow the starting monster to be selectable
-				$monsterid = $Flags["StartingMonster"];
-			}
-			elseif($i == 26){
-				//Special case: The hoodsquid needs to be a water-type. (0x13C - 0x15B, 32 monsters)
-				//TODO: Yeti Mode won't put a yeti here ):
-				$monsterid = Random() % 32 + 0x13C;
-			}else{
-				$monsterid = $ValidMonsterIDs[Random() % count($ValidMonsterIDs)];
-			}
-			$MonsterGrowthIndex = array_search($monsterid,$ValidMonsterGrowthIndecies);
 			
 			//Need to ensure Army Ant/Madgopher are obtainable before Ice, so let's not randomize them.
 			//      I like the idea of replacing them with any monster in the Pirate overworld (all zones), but I think that requires me to manually track down all of the addresses of the overworld enemies.
